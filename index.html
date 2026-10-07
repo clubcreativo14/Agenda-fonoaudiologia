@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Mi agenda de consultorio</title>
+<style>
+:root{--bg:#fbf8f1;--card:#fffdf5;--ink:#2b3a30;--mut:#7a7f78;--line:#c9d1c3;--g:#dbe9d6;--h:#c6dbd0;--c:#fdf0dc;--acc:#3f5b49;--inp:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171d19;--card:#1f2822;--ink:#e6ede6;--mut:#9aa59b;--line:#3b4a3f;--g:#2c4132;--h:#2b3f39;--c:#3a3326;--acc:#a9cdb4;--inp:#252f28}}
+:root[data-theme="dark"]{--bg:#171d19;--card:#1f2822;--ink:#e6ede6;--mut:#9aa59b;--line:#3b4a3f;--g:#2c4132;--h:#2b3f39;--c:#3a3326;--acc:#a9cdb4;--inp:#252f28}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{text-align:center;padding:18px 12px 6px}h1{margin:0;font:700 28px Georgia,serif;color:var(--acc)}header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding:8px 10px;border-bottom:1px solid var(--line)}
+nav button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:99px;font:inherit;font-size:13px;cursor:pointer}
+nav button.on{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+main{max-width:980px;margin:0 auto;padding:14px 10px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+h2{margin:0 0 10px;font:700 19px Georgia,serif;color:var(--acc)}h3{margin:12px 0 4px;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.sub{font-weight:400;color:var(--mut);font-size:12px;text-transform:none;letter-spacing:0}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+textarea{resize:vertical;min-height:56px}input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
+label{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 12px}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}
+th{background:var(--h);font-size:11px;letter-spacing:.06em;padding:6px;border:1px solid var(--line)}td{border:1px solid var(--line);padding:2px}td input{border:0;border-radius:0;background:transparent;min-width:60px}
+td.c{text-align:center}.pg input[type=text]{min-width:150px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);min-width:640px}.cal .hd{background:var(--g);text-align:center;font-weight:700;padding:6px;border:1px solid var(--line)}
+.cd{border:1px solid var(--line);min-height:84px;padding:2px}.cd b{font-size:12px;color:var(--mut)}.cd textarea{border:0;background:transparent;min-height:60px;padding:2px;font-size:13px}
+.b{margin-top:8px;border:1px dashed var(--acc);background:transparent;color:var(--acc);padding:7px 14px;border-radius:10px;font:inherit;cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:140px}
+.tools{display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px}
+@media print{nav,.tools,.b,header p{display:none}body{background:#fff;color:#000}}
+</style></head><body>
+<header><div>🌿</div><h1>Mi agenda de consultorio</h1><p>Completá con tus datos y llevá el día a día de tu práctica · se guarda solo en este dispositivo</p></header>
+<nav id="nav"></nav><main id="main"></main>
+<script>
+const S=(()=>{try{return JSON.parse(localStorage.getItem('agenda')||'{}')}catch(e){return{}}})();
+const save=()=>{try{localStorage.setItem('agenda',JSON.stringify(S))}catch(e){}};
+const now=new Date();if(S.cm==null)S.cm=''+now.getMonth();if(S.cy==null)S.cy=''+now.getFullYear();
+const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS=['LUN','MAR','MIÉR','JUEV','VIER','SÁB','DOM'],MM=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const n=(id,d)=>S[id+'_n']||d;
+const inp=(k,t='text',ph='')=>`<input data-k="${k}" type="${t}" placeholder="${ph}">`;
+const ta=(k,r)=>`<textarea data-k="${k}" ${r?`rows="${r}"`:''}></textarea>`;
+const fld=(l,k,t)=>`<div><label>${l}</label>${inp(k,t)}</div>`;
+function table(id,heads,def){let r=n(id,def),h='<div class="sc"><table><tr>'+heads.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+ for(let i=0;i<r;i++){h+='<tr>'+heads.map((_,c)=>`<td>${inp(`${id}_${i}_${c}`)}</td>`).join('')+'</tr>'}
+ return h+`</table></div><button class="b" data-add="${id}" data-d="${def}">+ Agregar fila</button>`}
+const card=(t,b)=>`<div class="card"><h2>${t}</h2>${b}</div>`;
+const area=(t,s,k)=>`<h3>${t} <span class="sub">${s||''}</span></h3>${ta(k,3)}`;
+const secs=[
+['Datos',()=>card('Datos personales',`<div class="grid">${fld('Nombre y apellido','d_nom')}${fld('Matrícula','d_mat')}${fld('Especialidad','d_esp')}${fld('Nombre del consultorio','d_cons')}${fld('Dirección','d_dir')}${fld('Teléfono','d_tel','tel')}${fld('Email','d_mail','email')}</div><label>Horarios de atención</label>${ta('d_hor',3)}`)],
+['Semana',()=>card('Planificación semanal',`<div class="row"><div><label>Semana del</label>${inp('ps_d','date')}</div><div><label>Al</label>${inp('ps_h','date')}</div></div>`+['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO','DOMINGO'].map((d,i)=>`<label>🌿 ${d}</label>${ta('ps_'+i,2)}`).join(''))],
+['Calendario',()=>{const m=+S.cm,y=+S.cy,f=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate(),rows=Math.ceil((f+nd)/7);
+ let g=DIAS.map(d=>`<div class="hd">${d[0]}</div>`).join('');
+ for(let i=0;i<rows*7;i++){const d=i-f+1;g+=d>0&&d<=nd?`<div class="cd"><b>${d}</b>${ta(`cal_${y}_${m}_${d}`)}</div>`:'<div class="cd"></div>'}
+ return card('📅 Calendario mensual',`<div class="row"><div><label>Mes</label><select data-k="cm">${MES.map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div><div><label>Año</label>${inp('cy','number')}</div></div><div class="sc" style="margin-top:10px"><div class="cal">${g}</div></div>`)}],
+['Turnero',()=>card('🕐 Turnero semanal',`<h3>Turno mañana</h3>${table('tm',['Hora',...DIAS],6)}<h3>Turno tarde</h3>${table('tt',['Hora',...DIAS],6)}`)],
+['Pacientes',()=>card('Listado de pacientes',table('pa',['Nombre','Edad','Teléfono','Diagnóstico'],15))],
+['Sesiones',()=>{let r=n('se',3),h='';for(let i=0;i<r;i++)h+=`<div class="card"><h2>Seguimiento de sesiones #${i+1}</h2><div class="row"><div><label>Paciente</label>${inp(`se${i}_p`)}</div><div><label>Fecha</label>${inp(`se${i}_f`,'date')}</div></div>`+[['Objetivo de la sesión','o'],['Actividad realizada','a'],['Evolución','e'],['Próxima meta','m'],['Observaciones','ob']].map(([l,k])=>`<label>🌿 ${l}</label>${ta(`se${i}_${k}`,3)}`).join('')+'</div>';
+ return h+`<button class="b" data-add="se" data-d="3">+ Nueva sesión</button>`}],
+['Tratamiento',()=>card('Tratamiento · Lectura',`<div class="sc"><table><tr><th>Semestre</th><th>Razonamiento verbal</th><th>Razonamiento no verbal</th><th>Vocabulario</th><th>Comprensión oral</th><th>Memoria</th></tr>${[1,2].map(s=>`<tr><th>${s}°</th>${[0,1,2,3,4].map(c=>`<td>${inp(`tl_${s}_${c}`)}</td>`).join('')}</tr>`).join('')}</table></div><h3>Habilidades académicas / Lectura</h3>`+['Reconocimiento de consonantes','Sílabas','Sílabas inversas','Palabras','Oraciones / oraciones complejas','Párrafo simple','Cuento breve / extenso','Técnicas de estudio'].map((t,i)=>`<label>${t}</label>${ta('hl_'+i,2)}`).join(''))+
+ card('Tratamiento · Lenguaje',`<div class="sc"><table><tr><th>Semestre</th><th>Comprensión</th><th>Lenguaje</th><th>Pertinencia</th><th>Sintaxis</th></tr>${[1,2].map(s=>`<tr><th>${s}°</th>${[0,1,2,3].map(c=>`<td>${inp(`tg_${s}_${c}`)}</td>`).join('')}</tr>`).join('')}</table></div>`+area('Comprensión','Órdenes simples y complejas','lg_0')+area('Lenguaje','Uso adecuado de lenguaje y categorías según contexto','lg_1')+area('Pertinencia','Pertinencia pragmática','lg_2')+area('Sintaxis','Sintaxis discursiva','lg_3'))],
+['Pagos',()=>{let r=n('pg',25),h=`<div class="sc"><table class="pg"><tr><th>N°</th><th>Descripción</th>${MM.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+ for(let i=0;i<r;i++)h+=`<tr><td class="c">${i+1}</td><td>${inp('pg_'+i)}</td>${MM.map((_,c)=>`<td class="c"><input type="checkbox" data-k="pgc_${i}_${c}"></td>`).join('')}</tr>`;
+ return card('✓ Pagos mensuales',h+`</table></div><button class="b" data-add="pg" data-d="25">+ Agregar fila</button>`)}],
+['Evaluaciones',()=>card('Evaluaciones pendientes',table('ev',['Paciente','Tipo de evaluación','Fecha de entrevista','Estado'],15))],
+['Derivaciones',()=>card('Derivaciones',table('dv',['Paciente','Especialidad','Profesional / centro','Fecha','Estado'],15))],
+['Materiales',()=>card('Materiales y juegos',table('mj',['Paciente','Material / juego','¿Funcionó?','Notas'],15))],
+['Notas',()=>card('Notas',`<textarea data-k="notas" rows="22"></textarea>`)]];
+let cur=+(S.tab||0);
+function render(){
+ document.getElementById('nav').innerHTML=secs.map((s,i)=>`<button class="${i==cur?'on':''}" data-t="${i}">${s[0]}</button>`).join('');
+ document.getElementById('main').innerHTML=`<div class="tools"><button class="b" onclick="print()">🖨 Imprimir</button></div>`+secs[cur][1]();
+ document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{cur=+b.dataset.t;S.tab=cur;save();render();scrollTo(0,0)});
+ document.querySelectorAll('[data-k]').forEach(e=>{const k=e.dataset.k,c=e.type=='checkbox';
+  if(c)e.checked=!!S[k];else if(S[k]!=null)e.value=S[k];
+  e.addEventListener(k=='cy'?'change':'input',()=>{S[k]=c?e.checked:e.value;save();if(k=='cm'||k=='cy')render()})});
+ document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const i=b.dataset.add;S[i+'_n']=n(i,+b.dataset.d)+1;save();render()});
+}
+render();
+</script></body></html>
