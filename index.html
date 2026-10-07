@@ -31,11 +31,17 @@ td.c{text-align:center}.pg input[type=text]{min-width:150px}
 <nav id="nav"></nav><main id="main"></main>
 <script>
 const S=(()=>{try{return JSON.parse(localStorage.getItem('agenda')||'{}')}catch(e){return{}}})();
-const save=()=>{try{localStorage.setItem('agenda',JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem('agenda',JSON.stringify(S));const s=document.getElementById('st');if(s)s.textContent='✓ Guardado automáticamente'}catch(e){}};
 const now=new Date();if(S.cm==null)S.cm=''+now.getMonth();if(S.cy==null)S.cy=''+now.getFullYear();
 const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS=['LUN','MAR','MIÉR','JUEV','VIER','SÁB','DOM'],MM=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 const n=(id,d)=>S[id+'_n']||d;
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const mon=d=>{d=new Date(d);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+const fmt=d=>d.toLocaleDateString('es-AR');
+if(!S.wk)S.wk=iso(mon(now));
+function wkNav(){const a=new Date(S.wk+'T00:00:00'),b=new Date(a);b.setDate(b.getDate()+6);
+return `<div class="row"><button class="b" data-w="-7">◀ Anterior</button><div style="text-align:center;min-width:200px"><b>Semana del ${fmt(a)} al ${fmt(b)}</b></div><button class="b" data-w="7">Siguiente ▶</button><button class="b" data-w="0">Hoy</button></div><div style="margin:8px 0 12px"><label>Ir a una fecha</label><input type="date" id="wpick" value="${S.wk}"></div>`}
 const inp=(k,t='text',ph='')=>`<input data-k="${k}" type="${t}" placeholder="${ph}">`;
 const ta=(k,r)=>`<textarea data-k="${k}" ${r?`rows="${r}"`:''}></textarea>`;
 const fld=(l,k,t)=>`<div><label>${l}</label>${inp(k,t)}</div>`;
@@ -46,12 +52,12 @@ const card=(t,b)=>`<div class="card"><h2>${t}</h2>${b}</div>`;
 const area=(t,s,k)=>`<h3>${t} <span class="sub">${s||''}</span></h3>${ta(k,3)}`;
 const secs=[
 ['Datos',()=>card('Datos personales',`<div class="grid">${fld('Nombre y apellido','d_nom')}${fld('Matrícula','d_mat')}${fld('Especialidad','d_esp')}${fld('Nombre del consultorio','d_cons')}${fld('Dirección','d_dir')}${fld('Teléfono','d_tel','tel')}${fld('Email','d_mail','email')}</div><label>Horarios de atención</label>${ta('d_hor',3)}`)],
-['Semana',()=>card('Planificación semanal',`<div class="row"><div><label>Semana del</label>${inp('ps_d','date')}</div><div><label>Al</label>${inp('ps_h','date')}</div></div>`+['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO','DOMINGO'].map((d,i)=>`<label>🌿 ${d}</label>${ta('ps_'+i,2)}`).join(''))],
+['Semana',()=>card('Planificación semanal',wkNav()+['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO','DOMINGO'].map((d,i)=>{const x=new Date(S.wk+'T00:00:00');x.setDate(x.getDate()+i);return `<label>🌿 ${d} ${x.getDate()}/${x.getMonth()+1}</label>${ta(`ps_${S.wk}_${i}`,2)}`}).join(''))],
 ['Calendario',()=>{const m=+S.cm,y=+S.cy,f=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate(),rows=Math.ceil((f+nd)/7);
  let g=DIAS.map(d=>`<div class="hd">${d[0]}</div>`).join('');
  for(let i=0;i<rows*7;i++){const d=i-f+1;g+=d>0&&d<=nd?`<div class="cd"><b>${d}</b>${ta(`cal_${y}_${m}_${d}`)}</div>`:'<div class="cd"></div>'}
  return card('📅 Calendario mensual',`<div class="row"><div><label>Mes</label><select data-k="cm">${MES.map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div><div><label>Año</label>${inp('cy','number')}</div></div><div class="sc" style="margin-top:10px"><div class="cal">${g}</div></div>`)}],
-['Turnero',()=>card('🕐 Turnero semanal',`<h3>Turno mañana</h3>${table('tm',['Hora',...DIAS],6)}<h3>Turno tarde</h3>${table('tt',['Hora',...DIAS],6)}`)],
+['Turnero',()=>card('🕐 Turnero semanal',`${wkNav()}<h3>Turno mañana</h3>${table('tm'+S.wk,['Hora',...DIAS],6)}<h3>Turno tarde</h3>${table('tt'+S.wk,['Hora',...DIAS],6)}`)],
 ['Pacientes',()=>card('Listado de pacientes',table('pa',['Nombre','Edad','Teléfono','Diagnóstico'],15))],
 ['Sesiones',()=>{let r=n('se',3),h='';for(let i=0;i<r;i++)h+=`<div class="card"><h2>Seguimiento de sesiones #${i+1}</h2><div class="row"><div><label>Paciente</label>${inp(`se${i}_p`)}</div><div><label>Fecha</label>${inp(`se${i}_f`,'date')}</div></div>`+[['Objetivo de la sesión','o'],['Actividad realizada','a'],['Evolución','e'],['Próxima meta','m'],['Observaciones','ob']].map(([l,k])=>`<label>🌿 ${l}</label>${ta(`se${i}_${k}`,3)}`).join('')+'</div>';
  return h+`<button class="b" data-add="se" data-d="3">+ Nueva sesión</button>`}],
@@ -67,11 +73,13 @@ const secs=[
 let cur=+(S.tab||0);
 function render(){
  document.getElementById('nav').innerHTML=secs.map((s,i)=>`<button class="${i==cur?'on':''}" data-t="${i}">${s[0]}</button>`).join('');
- document.getElementById('main').innerHTML=`<div class="tools"><button class="b" onclick="print()">🖨 Imprimir</button></div>`+secs[cur][1]();
+ document.getElementById('main').innerHTML=`<div class="tools"><span id="st" style="align-self:center;color:var(--mut);font-size:12px;margin-right:auto">Se guarda solo mientras escribís</span><button class="b" onclick="print()">🖨 Imprimir</button></div>`+secs[cur][1]();
  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{cur=+b.dataset.t;S.tab=cur;save();render();scrollTo(0,0)});
  document.querySelectorAll('[data-k]').forEach(e=>{const k=e.dataset.k,c=e.type=='checkbox';
   if(c)e.checked=!!S[k];else if(S[k]!=null)e.value=S[k];
   e.addEventListener(k=='cy'?'change':'input',()=>{S[k]=c?e.checked:e.value;save();if(k=='cm'||k=='cy')render()})});
+ document.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{const w=+b.dataset.w;let d=w?new Date(S.wk+'T00:00:00'):mon(new Date());if(w)d.setDate(d.getDate()+w);S.wk=iso(d);save();render()});
+ const wp=document.getElementById('wpick');if(wp)wp.onchange=()=>{if(wp.value){S.wk=iso(mon(wp.value+'T00:00:00'));save();render()}};
  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const i=b.dataset.add;S[i+'_n']=n(i,+b.dataset.d)+1;save();render()});
 }
 render();
